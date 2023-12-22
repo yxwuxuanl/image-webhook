@@ -1,0 +1,66 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: image-webhook
+webhooks:
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: webhook
+        namespace: image-webhook
+        path: /validating
+        port: 443
+    name: validating.image-webhook.lin2ur.cn
+    rules:
+      - operations:
+          - CREATE
+        apiGroups:
+          - ''
+        apiVersions:
+          - '*'
+        resources:
+          - pods
+    namespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values:
+            - image-webhook
+    timeoutSeconds: 10
+    sideEffects: None
+    failurePolicy: Fail
+
+---
+kind: MutatingWebhookConfiguration
+apiVersion: admissionregistration.k8s.io/v1
+metadata:
+  name: image-webhook
+webhooks:
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: webhook
+        namespace: image-webhook
+        path: /mutating
+        port: 443
+    name: mutating.image-webhook.lin2ur.cn
+    rules:
+      - operations:
+          - CREATE
+        apiGroups:
+          - ''
+        apiVersions:
+          - '*'
+        resources:
+          - pods
+    namespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values:
+            - image-webhook
+    timeoutSeconds: 10
+    sideEffects: None
+    failurePolicy: Ignore

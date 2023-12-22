@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webhook
+  namespace: image-webhook
+  labels:
+    app: webhook
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: webhook
+  template:
+    metadata:
+      name: webhook
+      labels:
+        app: webhook
+    spec:
+      volumes:
+        - name: tls
+          secret:
+            secretName: webhook-tls
+      containers:
+        - name: webhook
+          image: lin2ur/image-webhook:1.2
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: 10m
+              memory: 100Mi
+          volumeMounts:
+            - mountPath: /tls
+              name: tls
+          args:
+            - --tls-cert=/tls/cert
+            - --tls-key=/tls/key
+            - --registry-mirrors=docker.mirror.lin2ur.com,registry.k8s.io:k8s.mirror.lin2ur.com
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - containerPort: 443
+              name: https
+          readinessProbe:
+            httpGet:
+              port: https
+              scheme: HTTPS
+              path: /healthz
+            initialDelaySeconds: 5
+            successThreshold: 1
+            failureThreshold: 5
+            timeoutSeconds: 5
+            periodSeconds: 5
+      restartPolicy: Always
+      automountServiceAccountToken: false
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: webhook
+  namespace: image-webhook
+spec:
+  selector:
+    app: webhook
+  ports:
+    - protocol: TCP
+      port: 443
+      name: https
+      targetPort: https
+  type: ClusterIP

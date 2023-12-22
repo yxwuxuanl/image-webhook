@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: certgen-
+  namespace: image-webhook
+  labels:
+    job: certgen
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: webhook
+    spec:
+      containers:
+        - name: certgen
+          image: rancher/mirrored-ingress-nginx-kube-webhook-certgen:v20221220-controller-v1.5.1-58-g787ea74b6
+          imagePullPolicy: IfNotPresent
+          args:
+            - create
+            - --host=webhook,webhook.image-webhook.svc
+            - --namespace=image-webhook
+            - --secret-name=webhook-tls
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+      restartPolicy: Never
+      serviceAccountName: certgen

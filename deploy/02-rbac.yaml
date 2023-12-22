@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: certgen
+  namespace: image-webhook
+
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: certgen
+  namespace: image-webhook
+rules:
+  - verbs:
+      - get
+      - create
+    apiGroups:
+      - ''
+    resources:
+      - secrets
+
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: certgen
+  namespace: image-webhook
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: certgen
+subjects:
+  - kind: ServiceAccount
+    name: certgen
+
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: image-webhook-certgen
+rules:
+  - verbs:
+      - get
+      - update
+    apiGroups:
+      - admissionregistration.k8s.io
+    resources:
+      - validatingwebhookconfigurations
+      - mutatingwebhookconfigurations
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: image-webhook-certgen
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: image-webhook-certgen
+subjects:
+  - kind: ServiceAccount
+    name: certgen
+    namespace: image-webhook
